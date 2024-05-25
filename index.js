@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -29,8 +29,53 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
+    const menuCollection = client
+      .db("bistroRestaurantDB")
+      .collection("allMenu");
+    const myCartCollection = client
+      .db("bistroRestaurantDB")
+      .collection("myCart");
+
+    app.get("/allMenu", async (req, res) => {
+      const menu = await menuCollection.find().toArray();
+      res.send(menu);
+    });
+    app.get("/myCart", async (req, res) => {
+      const { email } = req.query;
+      console.log(email);
+      const filter = { email: email };
+      const result = await myCartCollection.find(filter).toArray();
+      res.send(result);
+    });
+    app.post("/myCart", async (req, res) => { 
+      const newMenu = req.body;
+      const result = await myCartCollection.insertOne(newMenu);
+      res.send(result);
+    });
+
+    app.patch("/myCart/:id", async (req, res) => {
+      const { id } = req.params;
+      const filter = { menuId: id };
+      const updatedValue = req.body;
+      const updatedDoc = {
+        $set: {
+          quantity: updatedValue.quantity,
+        },
+      };
+      const result =await myCartCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
+    app.delete("/myCart/:id", async (req, res) => {
+      const { id } = req.params;
+      const filter = { _id: new ObjectId(id) };
+      const result = await myCartCollection.deleteOne(filter);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
