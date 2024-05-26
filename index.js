@@ -48,13 +48,12 @@ async function run() {
     });
     app.get("/myCart", async (req, res) => {
       const { email } = req.query;
-      console.log(email);
       const filter = { email: email };
       const result = await myCartCollection.find(filter).toArray();
       res.send(result);
     });
     app.get("/allUsers", async (req, res) => {
-      const result = await myCartCollection.find().toArray();
+      const result = await allUsersCollection.find().toArray();
       res.send(result);
     });
 
@@ -67,6 +66,11 @@ async function run() {
     });
     app.post("/allUsers", async (req, res) => {
       const newUser = req.body;
+      const query = { email: newUser.email };
+      const existingUser = await allUsersCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ message: "user already exist" });
+      }
       const result = await allUsersCollection.insertOne(newUser);
       res.send(result);
     });
@@ -84,12 +88,31 @@ async function run() {
       const result = await myCartCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
+    app.patch("/allUsers/:id", async (req, res) => {
+      const { id } = req.params;
+      const filter = {_id: new ObjectId(id)};
+      const updatedValue = req.body;
+      const updatedDoc = {
+        $set: {
+          role: updatedValue.role,
+        },
+      };
+      const result = await allUsersCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
 
     // ------------------------------delete apis------------------------------
     app.delete("/myCart/:id", async (req, res) => {
       const { id } = req.params;
       const filter = { _id: new ObjectId(id) };
       const result = await myCartCollection.deleteOne(filter);
+      res.send(result);
+    });
+    app.delete("/allUsers/:id", async (req, res) => {
+      const { id } = req.params;
+      const filter = { _id: new ObjectId(id) };
+      const result = await allUsersCollection.deleteOne(filter);
       res.send(result);
     });
 
