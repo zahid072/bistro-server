@@ -3,6 +3,7 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 //middleware
@@ -40,6 +41,27 @@ async function run() {
       .db("bistroRestaurantDB")
       .collection("allUsers");
     //  all apis
+
+    // ----------Payment apis-------------- 
+
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
+      console.log(price)
+      const amount = parseInt(price * 100); 
+
+       if(amount > 0 ){
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: "usd",
+  
+          payment_method_types: ["card"],
+        });
+  
+        res.send({
+          clientSecret: paymentIntent.client_secret,
+        });
+       }
+    });
 
     // ----------------------------------get apis----------------------------------
     app.get("/allMenu", async (req, res) => {
@@ -90,7 +112,7 @@ async function run() {
     });
     app.patch("/allUsers/:id", async (req, res) => {
       const { id } = req.params;
-      const filter = {_id: new ObjectId(id)};
+      const filter = { _id: new ObjectId(id) };
       const updatedValue = req.body;
       const updatedDoc = {
         $set: {
@@ -100,7 +122,6 @@ async function run() {
       const result = await allUsersCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
-
 
     // ------------------------------delete apis------------------------------
     app.delete("/myCart/:id", async (req, res) => {
